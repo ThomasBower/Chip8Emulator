@@ -1,6 +1,11 @@
 #include "cpu.h"
 
-void list_init(struct machine *machine) {
+int main(int argc, char **argv) {
+  struct machine *machine;
+  machine_init(machine);
+}
+
+void machine_init(struct machine *machine) {
   // TODO: put an assert here checking if null
   
   /* Initialise positions of pointer registers */
@@ -13,11 +18,11 @@ void list_init(struct machine *machine) {
   machine->sound_timer = 0;
   
   /* Clear display, registers, keys, stack, and memory */
-  memset(machine->display, 0, sizeof(display));
-  memset(machine->keys, 0, sizeof(keys));
-  memset(machine->V, 0, sizeof(V));
-  memset(machine->stack, 0, sizeof(stack));
-  memset(machine->memory, 0, sizeof(memory));
+  memset(machine->display, 0, sizeof(machine->display));
+  memset(machine->keys, 0, sizeof(machine->keys));
+  memset(machine->V, 0, sizeof(machine->V));
+  memset(machine->stack, 0, sizeof(machine->stack));
+  memset(machine->memory, 0, sizeof(machine->memory));
 
   // TODO: load the fontset into memory
   //       between 0x050 and 0x0A0

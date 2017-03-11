@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 struct machine {
   /* Registers and memory */
@@ -20,7 +21,7 @@ struct machine {
                                 true = switched on (white), false = off/black */
   bool     keys[16];         /* Array representing the state of the hex keyboard
                                 true = pressed, false = not pressed */
-}
+};
 
 /* Sets up the machine with correct initial values */
 void init_machine(struct machine *); 
