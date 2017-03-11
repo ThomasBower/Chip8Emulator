@@ -1,9 +1,11 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 
 struct machine {
   /* Registers and memory */
@@ -24,6 +26,12 @@ struct machine {
 };
 
 /* Sets up the machine with correct initial values */
-void init_machine(struct machine *); 
+void machine_init(struct machine *); 
+
+/* Fetch the next instruction and increase the program counter */
+uint16_t fetch_instruction(struct machine *);
+
+/* Decodes the instruction based on the opcode */
+void decode_instruction(uint16_t instruction);
 
 #endif /* CPU_H */

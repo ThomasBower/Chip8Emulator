@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
 }
 
 void machine_init(struct machine *m) {
-  // TODO: put an assert here checking if null
-  
+  assert(m != NULL);
+
   /* Initialise positions of pointer registers */
   m->i = 0;
   m->pc = 0x200;
@@ -52,4 +52,59 @@ void machine_init(struct machine *m) {
 
 }
 
+uint16_t fetch_instruction(struct machine *m) {
+  return m->memory[m->pc] << 8 | m->memory[m->pc + 1];
+}
 
+void decode_instruction(uint16_t instruction) {
+  switch(instruction & 0xF000) {
+    case 0x0000:
+      // TODO
+      break;
+    case 0x1000:
+      // Jump to address NNN
+      break;
+    case 0x2000:
+      // Jump to subroutine at NNN
+      break;
+    case 0x3000:
+      // Skips next instruction if VX == NN
+      break;
+    case 0x4000:
+      // Skips next instruction if VX != NN
+      break;
+    case 0x5000:
+      // Skips next instruction if VX == VY
+      break;
+    case 0x6000:
+      // Sets VX to NN
+      break;
+    case 0x7000:
+      // Adds NN to VX
+      break;
+    case 0x8000:
+      // TODO
+      break;
+    case 0x9000:
+      // Skips next instruction if VX != VY
+      break;
+    case 0xA000:
+      // Sets I to address NNN
+      break;
+    case 0xB000:
+      // Jumps to address NNN plus V0
+      break;
+    case 0xC000:
+      // Sets VX to the result of a bitwise and operation on rand() and NN
+      break;
+    case 0xD000:
+      // Draw sprite at VX, VY, width 8px, height Npx (see Wikipedia)
+      break;
+    case 0xE000:
+      // TODO
+      break;
+    case 0xF000:
+      // TODO
+      break;
+  }
+}
