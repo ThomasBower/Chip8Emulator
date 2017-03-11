@@ -21,7 +21,7 @@ struct machine {
   uint8_t  sound_timer;      /* 8-bit sound timer register */
   bool     display[64 * 32]; /* Array representing each pixel of the display 
                                 true = switched on (white), false = off/black */
-  bool     keys[16];         /* Array representing the state of the hex keyboard
+  bool     key[16];          /* Array representing the state of the hex keyboard
                                 true = pressed, false = not pressed */
 };
 
@@ -32,6 +32,10 @@ void machine_init(struct machine *);
 uint16_t fetch_instruction(struct machine *);
 
 /* Decodes the instruction based on the opcode */
-void decode_instruction(uint16_t instruction);
+void decode_instruction(uint16_t instruction, struct machine *m);
+
+/* Functions to handle key presses */
+void key_press(uint16_t i, struct machine *m);
+void key_unpress(uint16_t i, struct machine *m);
 
 #endif /* CPU_H */

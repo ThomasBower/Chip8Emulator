@@ -24,7 +24,6 @@ int main(int argc, char **argv) {
   struct machine *machine = malloc(sizeof(struct machine));
   
   assert(machine != NULL);
-  
   machine_init(machine);
 }
 
@@ -42,7 +41,7 @@ void machine_init(struct machine *m) {
   
   /* Clear display, registers, keys, stack, and memory */
   memset(m->display, 0, sizeof(m->display));
-  memset(m->keys, 0, sizeof(m->keys));
+  memset(m->key, false, sizeof(m->key));
   memset(m->V, 0, sizeof(m->V));
   memset(m->stack, 0, sizeof(m->stack));
   memset(m->memory, 0, sizeof(m->memory));
@@ -56,46 +55,79 @@ uint16_t fetch_instruction(struct machine *m) {
   return m->memory[m->pc] << 8 | m->memory[m->pc + 1];
 }
 
-void decode_instruction(uint16_t instruction) {
+void decode_instruction(uint16_t instruction, struct machine *m) {
   switch(instruction & 0xF000) {
     case 0x0000:
-      // TODO
+      switch(instruction & 0x0F00) {
+        case 0x0000:
+          // TODO
+          break;
+        default:
+          // TODO
+          break;
+      }
       break;
     case 0x1000:
       // Jump to address NNN
+      m->pc = instruction & 0x0FFF;
       break;
     case 0x2000:
       // Jump to subroutine at NNN
       break;
     case 0x3000:
       // Skips next instruction if VX == NN
+      if (m->V[(instruction & 0x0F00) >> 8] == (instruction & 0x00FF))
+        m->pc += 4;
+      else
+        m->pc += 2;
       break;
     case 0x4000:
       // Skips next instruction if VX != NN
+      if (m->V[(instruction & 0x0F00) >> 8] != (instruction & 0x00FF))
+        m->pc += 4;
+      else
+        m->pc += 2;
       break;
     case 0x5000:
       // Skips next instruction if VX == VY
+      if (m->V[(instruction & 0x0F00) >> 8] == m->V[(instruction & 0x00F0) >> 4])
+        m->pc += 4;
+      else
+        m->pc += 2;
       break;
     case 0x6000:
       // Sets VX to NN
+      m->V[(instruction & 0x0F00) >> 8] = instruction & 0x00FF;
+      m->pc += 2;
       break;
     case 0x7000:
       // Adds NN to VX
+      m->V[(instruction & 0x0F00) >> 8] += instruction & 0x00FF;
+      m->pc += 2;
       break;
     case 0x8000:
       // TODO
       break;
     case 0x9000:
       // Skips next instruction if VX != VY
+      if (m->V[(instruction & 0x0F00) >> 8] != m->V[(instruction & 0x00F0) >> 4])
+        m->pc += 4;
+      else
+        m->pc += 2;
       break;
     case 0xA000:
       // Sets I to address NNN
+      m->i = instruction & 0x0FFF;
+      m->pc += 2;
       break;
     case 0xB000:
       // Jumps to address NNN plus V0
+      m->pc = m->V[0] + (instruction & 0x0FFF);
       break;
     case 0xC000:
       // Sets VX to the result of a bitwise and operation on rand() and NN
+      m->V[instruction & 0x0F00] = (rand() % 256) & (instruction & 0x00FF);
+      m->pc += 2;
       break;
     case 0xD000:
       // Draw sprite at VX, VY, width 8px, height Npx (see Wikipedia)
@@ -107,4 +139,12 @@ void decode_instruction(uint16_t instruction) {
       // TODO
       break;
   }
+}
+
+void key_press(uint16_t i, struct machine *m) {
+  m->key[i] = true;
+}
+
+void key_unpress(uint16_t i, struct machine *m) {
+  m->key[i] = false;
 }
