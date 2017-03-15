@@ -7,6 +7,9 @@
 #include <string.h>
 #include <assert.h>
 
+#define NUM_PIXELS_X 64
+#define NUM_PIXELS_Y 32
+
 struct machine {
   /* Registers and memory */
   uint8_t  memory[4096];     /* 4K worth of memory */
@@ -19,8 +22,9 @@ struct machine {
   /* Information for display and sound */
   uint8_t  delay_timer;      /* 8-bit delay timer register */
   uint8_t  sound_timer;      /* 8-bit sound timer register */
-  bool     display[64 * 32]; /* Array representing each pixel of the display 
-                                true = switched on (white), false = off/black */
+                             /* Array representing each pixel of the display 
+                                true = switched on/white, false = off/black */
+  bool     display[NUM_PIXELS_X * NUM_PIXELS_Y]; 
   bool     key[16];          /* Array representing the state of the hex keyboard
                                 true = pressed, false = not pressed */
 };
