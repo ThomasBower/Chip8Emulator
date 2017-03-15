@@ -131,6 +131,29 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
       break;
     case 0xD000:
       // Draw sprite at VX, VY, width 8px, height Npx (see Wikipedia)
+      {
+        uint8_t x = (instruction & 0x0F00) >> 8;
+        uint8_t y = (instruction & 0x00F0) >> 4;
+        uint8_t h = instruction & 0x000F;
+        uint8_t row;
+
+        m->V[0xF] = 0;
+        for (int i = 0; i < h; i++) { // Work downwards - y axis
+          row = m->memory[m->i + i];
+          for (int j = 0; j < 8; j++) { // Work across - x axis
+            // Check if current pixel is not turned off
+            if ((row & (0x80 >> j)) != 0) {
+              // See if the corresponding pixel on the screen is already on.
+              // If it is, then we need to set the VF flag to indicate a 
+              // collision.
+              // TODO Remove magic numbers
+              if (m->display[(x + j + ((y + i) * 64))] == 1)
+                m->V[0xF] = 1;
+              m->display[x + j + ((y + yline) * 64)] ^= 1;
+            } 
+          }
+        }
+      }
       break;
     case 0xE000:
       // TODO
