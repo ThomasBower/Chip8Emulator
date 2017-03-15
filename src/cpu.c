@@ -35,9 +35,10 @@ void machine_init(struct machine *m) {
   m->pc = 0x200;
   m->sp = 0;
   
-  /* Reset the timers */
+  /* Reset the timers and draw flag */
   m->delay_timer = 0;
   m->sound_timer = 0;
+  m->needs_redraw = 0;
   
   /* Clear display, registers, keys, stack, and memory */
   memset(m->display, 0, sizeof(m->display));
@@ -149,14 +150,28 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
               // TODO Remove magic numbers
               if (m->display[(x + j + ((y + i) * 64))] == 1)
                 m->V[0xF] = 1;
-              m->display[x + j + ((y + yline) * 64)] ^= 1;
+              m->display[x + j + ((y + i) * 64)] ^= 1;
             } 
           }
         }
+
+        m->needs_redraw = true;
+        m->pc += 2;
       }
       break;
     case 0xE000:
-      // TODO
+      switch (instruction & 0x00FF) {
+        case 0x009E:
+          if (m->keys[(instruction & 0x0F00) >> 8])
+            m->pc += 2; // Skip the next instruction
+          m->pc += 2;
+          break;
+        case 0x00A1:
+          if (!m->keys[(instruction & 0x0F00) >> 8])
+            m->pc += 2; // Skip the next instruction
+          m->pc += 2;
+          break;
+      }
       break;
     case 0xF000:
       // TODO

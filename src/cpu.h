@@ -24,6 +24,8 @@ struct machine {
   uint8_t  sound_timer;      /* 8-bit sound timer register */
                              /* Array representing each pixel of the display 
                                 true = switched on/white, false = off/black */
+  bool     needs_redraw;     /* Flag used to determine whether or not to
+                                redraw the pixels on screen. */
   bool     display[NUM_PIXELS_X * NUM_PIXELS_Y]; 
   bool     key[16];          /* Array representing the state of the hex keyboard
                                 true = pressed, false = not pressed */
