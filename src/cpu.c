@@ -59,12 +59,21 @@ uint16_t fetch_instruction(struct machine *m) {
 void decode_instruction(uint16_t instruction, struct machine *m) {
   switch(instruction & 0xF000) {
     case 0x0000:
-      switch(instruction & 0x0F00) {
-        case 0x0000:
-          // TODO
+      switch(instruction & 0x0FFF) {
+        case 0x00E0:
+          // TODO Move this out of here - horrible repetition
+          // Clears screen
+          memset(m->display, 0, sizeof(m->display));
+          m->pc += 2;
+          break;
+        case 0x00EE:
+          // Return from subroutine
+          m->pc = m->stack[m->sp--];
           break;
         default:
+          // Calls RCA 1802 program at address NNN
           // TODO
+          m->pc += 2;
           break;
       }
       break;
@@ -74,27 +83,27 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
       break;
     case 0x2000:
       // Jump to subroutine at NNN
+      // TODO Check that stack hasn't overflowed
+      m->stack[++m->sp] = m->pc;
+      m->pc = instruction & 0x0FFF;
       break;
     case 0x3000:
       // Skips next instruction if VX == NN
       if (m->V[(instruction & 0x0F00) >> 8] == (instruction & 0x00FF))
-        m->pc += 4;
-      else
         m->pc += 2;
+      m->pc += 2;
       break;
     case 0x4000:
       // Skips next instruction if VX != NN
       if (m->V[(instruction & 0x0F00) >> 8] != (instruction & 0x00FF))
-        m->pc += 4;
-      else
         m->pc += 2;
+      m->pc += 2;
       break;
     case 0x5000:
       // Skips next instruction if VX == VY
       if (m->V[(instruction & 0x0F00) >> 8] == m->V[(instruction & 0x00F0) >> 4])
-        m->pc += 4;
-      else
         m->pc += 2;
+      m->pc += 2;
       break;
     case 0x6000:
       // Sets VX to NN
@@ -112,9 +121,8 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
     case 0x9000:
       // Skips next instruction if VX != VY
       if (m->V[(instruction & 0x0F00) >> 8] != m->V[(instruction & 0x00F0) >> 4])
-        m->pc += 4;
-      else
         m->pc += 2;
+      m->pc += 2;
       break;
     case 0xA000:
       // Sets I to address NNN
