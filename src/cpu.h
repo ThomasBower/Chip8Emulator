@@ -1,6 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -23,12 +24,12 @@ struct machine {
   uint8_t  delay_timer;      /* 8-bit delay timer register */
   uint8_t  sound_timer;      /* 8-bit sound timer register */
                              /* Array representing each pixel of the display 
-                                true = switched on/white, false = off/black */
+                              * true = switched on/white, false = off/black */
   bool     needs_redraw;     /* Flag used to determine whether or not to
-                                redraw the pixels on screen. */
+                              * redraw the pixels on screen. */
   bool     display[NUM_PIXELS_X * NUM_PIXELS_Y]; 
   bool     key[16];          /* Array representing the state of the hex keyboard
-                                true = pressed, false = not pressed */
+                              * true = pressed, false = not pressed */
 };
 
 /* Sets up the machine with correct initial values */
@@ -43,5 +44,9 @@ void decode_instruction(uint16_t instruction, struct machine *m);
 /* Functions to handle key presses */
 void key_press(uint16_t i, struct machine *m);
 void key_unpress(uint16_t i, struct machine *m);
+
+/* Used to load the program stored at path into machine m. Returns true
+ * if successful, false otherwise */
+bool load_program(char *path, struct machine *m);
 
 #endif /* CPU_H */

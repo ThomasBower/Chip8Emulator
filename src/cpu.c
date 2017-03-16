@@ -20,11 +20,21 @@ uint8_t fontset[80] = {
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
+
+// TODO Move this out into a different file - this should contain only
+// CPU logic
 int main(int argc, char **argv) {
   struct machine *machine = malloc(sizeof(struct machine));
   
   assert(machine != NULL);
   machine_init(machine);
+
+  load_program("../roms/PONG", machine);
+  
+  /*for (int i = 0; i < sizeof(machine->memory) / sizeof(machine->memory[0]); i++) {
+    printf("0x%03x: %x\n", i, machine->memory[i]);
+  }*/
+
 }
 
 void machine_init(struct machine *m) {
@@ -229,4 +239,20 @@ void key_press(uint16_t i, struct machine *m) {
 
 void key_unpress(uint16_t i, struct machine *m) {
   m->key[i] = false;
+}
+
+bool load_program(char *path, struct machine *m) {
+  // Open file in binary read mode and calculate file size
+  FILE *f = fopen(path, "rb");
+  if (!f)
+    return false;
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  // Go back to start of file
+  rewind(f);
+  // Read the entire file into the 'buffer' at 0x200 in memory (the location
+  // where programs are expected to begin at), then clean up after ourselves
+  fread(&m->memory[0x200], fsize, 1, f);
+  fclose(f);
+  return true;
 }
