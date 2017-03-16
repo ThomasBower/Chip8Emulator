@@ -162,19 +162,55 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
     case 0xE000:
       switch (instruction & 0x00FF) {
         case 0x009E:
-          if (m->keys[(instruction & 0x0F00) >> 8])
+          if (m->key[m->V[(instruction & 0x0F00) >> 8]])
             m->pc += 2; // Skip the next instruction
           m->pc += 2;
           break;
         case 0x00A1:
-          if (!m->keys[(instruction & 0x0F00) >> 8])
+          if (!m->key[m->V[(instruction & 0x0F00) >> 8]])
             m->pc += 2; // Skip the next instruction
           m->pc += 2;
           break;
       }
       break;
     case 0xF000:
-      // TODO
+      {
+        uint8_t x = (instruction & 0x0F00) >> 8;
+        switch (instruction & 0x00FF) {
+          case 0x0007:
+            m->V[x] = m->delay_timer;
+            break;
+          case 0x000A:
+            // TODO
+            break;
+          case 0x0015:
+            m->delay_timer = m->V[x];
+            break;
+          case 0x0018:
+            m->sound_timer = m->V[x];
+            break;
+          case 0x001E:
+            m->i += m->V[x];
+            break;
+          case 0x0029:
+            // TODO
+            break;
+          case 0x0033:
+            m->memory[m->i]     = m->V[x] / 100;        // Hundreds
+            m->memory[m->i + 1] = (m->V[x] / 10) % 10;  // Tens
+            m->memory[m->i + 2] = (m->V[x] % 100) % 10; // Digits
+            break;
+          case 0x0055:
+            // Stores V0 to VX in memory, starting from address I
+            memcpy(&m->memory[m->i], m->V, sizeof(m->V[0]) * (x + 1));
+            break;
+          case 0x0065:
+            // Fills registers with values in memory, starting from address I
+            memcpy(m->V, &m->memory[m->i], sizeof(m->memory[0]) * (x + 1));
+            break;
+        }
+        m->pc += 2;
+      }
       break;
   }
 }
