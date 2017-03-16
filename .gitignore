@@ -33,4 +33,4 @@
 *.su
 
 # Chip-8 specific
-roms/* # don't upload games 
+roms/ # don't upload games 
