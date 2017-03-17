@@ -1,5 +1,9 @@
 #include "cpu.h"
 
+//#define PROG_ADDR 0x200
+//#define BIT_MASK(n, s, b) \
+//  ((n >> s) & (0x10)
+
 /* Chip 8 basic font set */
 uint8_t fontset[80] = {
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -31,33 +35,31 @@ int main(int argc, char **argv) {
 
   load_program("../roms/PONG", machine);
   
-  /*for (int i = 0; i < sizeof(machine->memory) / sizeof(machine->memory[0]); i++) {
-    printf("0x%03x: %x\n", i, machine->memory[i]);
-  }*/
+  print_memory(machine);
 
 }
 
 void machine_init(struct machine *m) {
   assert(m != NULL);
 
-  /* Initialise positions of pointer registers */
+  // Initialise positions of pointer registers
   m->i = 0;
-  m->pc = 0x200;
+  m->pc = PROG_ADDR;
   m->sp = 0;
   
-  /* Reset the timers and draw flag */
+  // Reset the timers and draw flag
   m->delay_timer = 0;
   m->sound_timer = 0;
   m->needs_redraw = 0;
   
-  /* Clear display, registers, keys, stack, and memory */
+  // Clear display, registers, keys, stack, and memory
   memset(m->display, 0, sizeof(m->display));
   memset(m->key, false, sizeof(m->key));
   memset(m->V, 0, sizeof(m->V));
   memset(m->stack, 0, sizeof(m->stack));
   memset(m->memory, 0, sizeof(m->memory));
 
-  /* Load fontset into memory at the expected location */
+  // Load fontset into memory at the expected location
   memcpy(&m->memory[0x050], fontset, sizeof(fontset));
 
 }
@@ -67,16 +69,24 @@ uint16_t fetch_instruction(struct machine *m) {
 }
 
 void decode_instruction(uint16_t instruction, struct machine *m) {
-  switch(instruction & 0xF000) {
-    case 0x0000:
-      switch(instruction & 0x0FFF) {
-        case 0x00E0:
+
+  uint8_t c = (instruction & 0xF000) >> 12;
+  uint8_t x = (instruction & 0x0F00) >> 8; 
+  uint8_t y = (instruction & 0x00F0) >> 4; 
+  uint8_t nnn = (instruction & 0x0FFF); 
+  uint8_t nn = (instruction & 0x00FF); 
+  uint8_t n = (instruction & 0x000F); 
+
+  switch(c) {
+    case 0x0:
+      switch(nnn) {
+        case 0xE0:
           // TODO Move this out of here - horrible repetition
           // Clears screen
           memset(m->display, 0, sizeof(m->display));
           m->pc += 2;
           break;
-        case 0x00EE:
+        case 0xEE:
           // Return from subroutine
           m->pc = m->stack[m->sp--];
           break;
@@ -87,77 +97,74 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
           break;
       }
       break;
-    case 0x1000:
+    case 0x1:
       // Jump to address NNN
-      m->pc = instruction & 0x0FFF;
+      m->pc = nnn;
       break;
-    case 0x2000:
+    case 0x2:
       // Jump to subroutine at NNN
       // TODO Check that stack hasn't overflowed
       m->stack[++m->sp] = m->pc;
-      m->pc = instruction & 0x0FFF;
+      m->pc = nnn;
       break;
-    case 0x3000:
+    case 0x3:
       // Skips next instruction if VX == NN
-      if (m->V[(instruction & 0x0F00) >> 8] == (instruction & 0x00FF))
+      if (m->V[x] == nn)
         m->pc += 2;
       m->pc += 2;
       break;
-    case 0x4000:
+    case 0x4:
       // Skips next instruction if VX != NN
-      if (m->V[(instruction & 0x0F00) >> 8] != (instruction & 0x00FF))
+      if (m->V[x] != nn)
         m->pc += 2;
       m->pc += 2;
       break;
-    case 0x5000:
+    case 0x5:
       // Skips next instruction if VX == VY
-      if (m->V[(instruction & 0x0F00) >> 8] == m->V[(instruction & 0x00F0) >> 4])
+      if (m->V[x] == m->V[y])
         m->pc += 2;
       m->pc += 2;
       break;
-    case 0x6000:
+    case 0x6:
       // Sets VX to NN
-      m->V[(instruction & 0x0F00) >> 8] = instruction & 0x00FF;
+      m->V[x] = nn;
       m->pc += 2;
       break;
-    case 0x7000:
+    case 0x7:
       // Adds NN to VX
-      m->V[(instruction & 0x0F00) >> 8] += instruction & 0x00FF;
+      m->V[x] += nn;
       m->pc += 2;
       break;
-    case 0x8000:
+    case 0x8:
       // TODO
       break;
-    case 0x9000:
+    case 0x9:
       // Skips next instruction if VX != VY
-      if (m->V[(instruction & 0x0F00) >> 8] != m->V[(instruction & 0x00F0) >> 4])
+      if (m->V[x] != m->V[y])
         m->pc += 2;
       m->pc += 2;
       break;
-    case 0xA000:
+    case 0xA:
       // Sets I to address NNN
-      m->i = instruction & 0x0FFF;
+      m->i = nnn;
       m->pc += 2;
       break;
-    case 0xB000:
+    case 0xB:
       // Jumps to address NNN plus V0
-      m->pc = m->V[0] + (instruction & 0x0FFF);
+      m->pc = m->V[0] + nnn;
       break;
-    case 0xC000:
+    case 0xC:
       // Sets VX to the result of a bitwise and operation on rand() and NN
-      m->V[instruction & 0x0F00] = (rand() % 256) & (instruction & 0x00FF);
+      m->V[x] = (rand() % 256) & nn;
       m->pc += 2;
       break;
-    case 0xD000:
+    case 0xD:
       // Draw sprite at VX, VY, width 8px, height Npx (see Wikipedia)
       {
-        uint8_t x = (instruction & 0x0F00) >> 8;
-        uint8_t y = (instruction & 0x00F0) >> 4;
-        uint8_t h = instruction & 0x000F;
         uint8_t row;
 
         m->V[0xF] = 0;
-        for (int i = 0; i < h; i++) { // Work downwards - y axis
+        for (int i = 0; i < n; i++) { // Work downwards - y axis
           row = m->memory[m->i + i];
           for (int j = 0; j < 8; j++) { // Work across - x axis
             // Check if current pixel is not turned off
@@ -177,52 +184,51 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
         m->pc += 2;
       }
       break;
-    case 0xE000:
+    case 0xE:
       switch (instruction & 0x00FF) {
         case 0x009E:
-          if (m->key[m->V[(instruction & 0x0F00) >> 8]])
+          if (m->key[m->V[x]])
             m->pc += 2; // Skip the next instruction
           m->pc += 2;
           break;
         case 0x00A1:
-          if (!m->key[m->V[(instruction & 0x0F00) >> 8]])
+          if (!m->key[m->V[x]])
             m->pc += 2; // Skip the next instruction
           m->pc += 2;
           break;
       }
       break;
-    case 0xF000:
+    case 0xF:
       {
-        uint8_t x = (instruction & 0x0F00) >> 8;
-        switch (instruction & 0x00FF) {
-          case 0x0007:
+        switch (nn) {
+          case 0x7:
             m->V[x] = m->delay_timer;
             break;
-          case 0x000A:
+          case 0xA:
             // TODO
             break;
-          case 0x0015:
+          case 0x15:
             m->delay_timer = m->V[x];
             break;
-          case 0x0018:
+          case 0x18:
             m->sound_timer = m->V[x];
             break;
-          case 0x001E:
+          case 0x1E:
             m->i += m->V[x];
             break;
-          case 0x0029:
+          case 0x29:
             // TODO
             break;
-          case 0x0033:
+          case 0x33:
             m->memory[m->i]     = m->V[x] / 100;        // Hundreds
             m->memory[m->i + 1] = (m->V[x] / 10) % 10;  // Tens
             m->memory[m->i + 2] = (m->V[x] % 100) % 10; // Digits
             break;
-          case 0x0055:
+          case 0x55:
             // Stores V0 to VX in memory, starting from address I
             memcpy(&m->memory[m->i], m->V, sizeof(m->V[0]) * (x + 1));
             break;
-          case 0x0065:
+          case 0x65:
             // Fills registers with values in memory, starting from address I
             memcpy(m->V, &m->memory[m->i], sizeof(m->memory[0]) * (x + 1));
             break;
@@ -233,11 +239,11 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
   }
 }
 
-void key_press(uint16_t i, struct machine *m) {
+void key_press(uint8_t i, struct machine *m) {
   m->key[i] = true;
 }
 
-void key_unpress(uint16_t i, struct machine *m) {
+void key_unpress(uint8_t i, struct machine *m) {
   m->key[i] = false;
 }
 
@@ -252,7 +258,23 @@ bool load_program(char *path, struct machine *m) {
   rewind(f);
   // Read the entire file into the 'buffer' at 0x200 in memory (the location
   // where programs are expected to begin at), then clean up after ourselves
-  fread(&m->memory[0x200], fsize, 1, f);
+  fread(&m->memory[PROG_ADDR], fsize, 1, f);
   fclose(f);
   return true;
+}
+
+void next_instruction(struct machine *m) {
+  m->pc += BYTES_PER_INSTRUCTION;
+}
+
+void goto_instruction(uint16_t i, struct machine *m) {
+  m->pc = i;
+}
+
+void print_memory(struct machine *m) {
+  for (int i = 0; i < sizeof(m->memory) / sizeof(m->memory[0]); i++) {
+    if (i % 16 == 0)
+      printf("\n0x%03x: ", i);
+    printf("%02x ", m->memory[i]);
+  }
 }

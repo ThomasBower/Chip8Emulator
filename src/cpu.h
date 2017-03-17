@@ -10,6 +10,8 @@
 
 #define NUM_PIXELS_X 64
 #define NUM_PIXELS_Y 32
+#define PROG_ADDR 0x200
+#define BYTES_PER_INSTRUCTION 2
 
 struct machine {
   /* Registers and memory */
@@ -33,20 +35,27 @@ struct machine {
 };
 
 /* Sets up the machine with correct initial values */
-void machine_init(struct machine *); 
+void machine_init(struct machine *m); 
 
 /* Fetch the next instruction and increase the program counter */
-uint16_t fetch_instruction(struct machine *);
+uint16_t fetch_instruction(struct machine *m);
 
 /* Decodes the instruction based on the opcode */
 void decode_instruction(uint16_t instruction, struct machine *m);
 
 /* Functions to handle key presses */
-void key_press(uint16_t i, struct machine *m);
-void key_unpress(uint16_t i, struct machine *m);
+void key_press(uint8_t i, struct machine *m);
+void key_unpress(uint8_t i, struct machine *m);
 
 /* Used to load the program stored at path into machine m. Returns true
  * if successful, false otherwise */
 bool load_program(char *path, struct machine *m);
+
+/* Advances the program to the next instruction */
+void next_instruction(struct machine *m);
+void goto_instruction(uint16_t i, struct machine *m);
+
+/* Prints out the values of every item in memory, for debugging purposes */
+void print_memory(struct machine *m);
 
 #endif /* CPU_H */
