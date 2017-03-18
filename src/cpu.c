@@ -28,14 +28,26 @@ uint8_t fontset[80] = {
 // TODO Move this out into a different file - this should contain only
 // CPU logic
 int main(int argc, char **argv) {
-  struct machine *machine = malloc(sizeof(struct machine));
+  struct machine *m = malloc(sizeof(struct machine));
   
-  assert(machine != NULL);
-  machine_init(machine);
+  assert(m != NULL);
+  machine_init(m);
 
-  load_program("../roms/PONG", machine);
-  
-  print_memory(machine);
+  load_program("../roms/STARS", m);
+
+  for (int i = 0; i < 10000; i++) {  
+    machine_tick(m);
+    //printf("%02x %02x\n", m->pc, m->memory[m->pc]);
+  }
+
+  /*for (int i = 0; i < 64*32; i++) {
+    if(m->display[i])
+      printf("1");
+    else
+      printf("0");
+    if ((i + 1) % 64 == 0)
+      printf("\n");
+  }*/
 
 }
 
@@ -60,8 +72,13 @@ void machine_init(struct machine *m) {
   memset(m->memory, 0, sizeof(m->memory));
 
   // Load fontset into memory at the expected location
-  memcpy(&m->memory[0x050], fontset, sizeof(fontset));
+  memcpy(&m->memory[FONT_ADDR], fontset, sizeof(fontset));
 
+}
+
+void machine_tick(struct machine *m) {
+  uint16_t instr = fetch_instruction(m);
+  decode_instruction(instr, m);
 }
 
 uint16_t fetch_instruction(struct machine *m) {
@@ -73,7 +90,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
   uint8_t c = (instruction & 0xF000) >> 12;
   uint8_t x = (instruction & 0x0F00) >> 8; 
   uint8_t y = (instruction & 0x00F0) >> 4; 
-  uint8_t nnn = (instruction & 0x0FFF); 
+  uint16_t nnn = (instruction & 0x0FFF); 
   uint8_t nn = (instruction & 0x00FF); 
   uint8_t n = (instruction & 0x000F); 
 
@@ -88,7 +105,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
           break;
         case 0xEE:
           // Return from subroutine
-          m->pc = m->stack[m->sp--];
+          m->pc = m->stack[--m->sp] + 2;
           break;
         default:
           // Calls RCA 1802 program at address NNN
@@ -104,7 +121,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
     case 0x2:
       // Jump to subroutine at NNN
       // TODO Check that stack hasn't overflowed
-      m->stack[++m->sp] = m->pc;
+      m->stack[m->sp++] = m->pc;
       m->pc = nnn;
       break;
     case 0x3:
@@ -136,7 +153,44 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
       m->pc += 2;
       break;
     case 0x8:
-      // TODO
+      switch (n) {
+        case 0:
+          m->V[x] = m->V[y];
+          break;
+        case 1:
+          m->V[x] |= m->V[y];
+          m->V[0xF] = 0;
+          break;
+        case 2:
+          m->V[x] &= m->V[y];
+          m->V[0xF] = 0;
+          break;
+        case 3:
+          m->V[x] ^= m->V[y];
+          m->V[0xF] = 0;
+          break;
+        case 4:
+          m->V[x] += m->V[y];
+          m->V[0xF] = m->V[x] < m->V[y]; // Overflow flag
+          break;
+        case 5:
+          m->V[x] -= m->V[y];
+          m->V[0xF] = m->V[x] > m->V[y]; // Overflow flag
+          break;
+        case 6:
+          m->V[0xF] = m->V[x] & 1; // Set VF to LSB
+          m->V[x] >>= 1;
+          break;
+        case 7:
+          m->V[x] = m->V[y] - m->V[x];
+          m->V[0xF] = m->V[x] > m->V[y]; // Overflow flag
+          break;
+        case 0xE:
+          m->V[0xF] = m->V[x] & 0x80; // Set VF to MSB
+          m->V[x] <<= 1;
+          break;
+      }
+      m->pc += 2;
       break;
     case 0x9:
       // Skips next instruction if VX != VY
@@ -217,7 +271,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
             m->i += m->V[x];
             break;
           case 0x29:
-            // TODO
+            m->i = FONT_ADDR + (BYTES_PER_CHARACTER * m->V[x]);
             break;
           case 0x33:
             m->memory[m->i]     = m->V[x] / 100;        // Hundreds
@@ -277,4 +331,13 @@ void print_memory(struct machine *m) {
       printf("\n0x%03x: ", i);
     printf("%02x ", m->memory[i]);
   }
+}
+
+void print_registers(struct machine *m) {
+  for (int i = 0; i < sizeof(m->V) / sizeof(m->V[0]); i++) {
+    printf("%x: %02x, ", i, m->V[i]);
+    if ((i + 1) % 8 == 0)
+      printf("\n");
+  }
+  printf("------\n");
 }
