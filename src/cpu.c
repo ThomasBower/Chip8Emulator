@@ -33,14 +33,14 @@ int main(int argc, char **argv) {
   assert(m != NULL);
   machine_init(m);
 
-  load_program("../roms/STARS", m);
+  load_program("../roms/TETRIS", m);
 
-  for (int i = 0; i < 10000; i++) {  
+  /*for (int i = 0; i < 2000; i++) {  
     machine_tick(m);
     //printf("%02x %02x\n", m->pc, m->memory[m->pc]);
   }
 
-  /*for (int i = 0; i < 64*32; i++) {
+  for (int i = 0; i < 64*32; i++) {
     if(m->display[i])
       printf("1");
     else
@@ -227,9 +227,9 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
               // If it is, then we need to set the VF flag to indicate a 
               // collision.
               // TODO Remove magic numbers
-              if (m->display[(x + j + ((y + i) * 64))] == 1)
+              if (m->display[(m->V[x] + j + ((m->V[y] + i) * 64))] == 1)
                 m->V[0xF] = 1;
-              m->display[x + j + ((y + i) * 64)] ^= 1;
+              m->display[m->V[x] + j + ((m->V[y] + i) * 64)] ^= 1;
             } 
           }
         }
@@ -294,6 +294,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
 }
 
 void key_press(uint8_t i, struct machine *m) {
+
   m->key[i] = true;
 }
 
