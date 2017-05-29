@@ -7,18 +7,21 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#include "SDL2/SDL.h"
+
+#define UI_SCALE 10
 
 #define NUM_PIXELS_X 64
 #define NUM_PIXELS_Y 32
 #define PROG_ADDR 0x200
 #define FONT_ADDR 0x050
-#define MEM_SIZE 4096
+#define MEM_SIZE 0x1000
 #define BYTES_PER_INSTRUCTION 2
 #define BYTES_PER_CHARACTER 5
 
 struct machine {
   /* Registers and memory */
-  uint8_t  memory[MEM_SIZE];     /* 4K worth of memory */
+  uint8_t  memory[MEM_SIZE]; /* 4K worth of memory */
   uint8_t  V[16];            /* Array holding all 16 8-bit registers */
   uint16_t i;                /* 16-bit address register */
   uint16_t pc;               /* 16-bit program counter */
@@ -33,6 +36,8 @@ struct machine {
   bool     needs_redraw;     /* Flag used to determine whether or not to
                               * redraw the pixels on screen. */
   bool     display[NUM_PIXELS_X * NUM_PIXELS_Y]; 
+  int8_t   new_keypress;     /* Stores the latest key to be pressed, or -1 if
+                              * value has already been consumed. */
   bool     key[16];          /* Array representing the state of the hex keyboard
                               * true = pressed, false = not pressed */
 };

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Werror -pedantic
+CFLAGS = -Wall -pedantic -lSDL2
 
 .SUFFIXES: .c .o
 

@@ -24,7 +24,6 @@ uint8_t fontset[80] = {
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-
 // TODO Move this out into a different file - this should contain only
 // CPU logic
 int main(int argc, char **argv) {
@@ -33,22 +32,67 @@ int main(int argc, char **argv) {
   assert(m != NULL);
   machine_init(m);
 
-  load_program("../roms/TETRIS", m);
+  SDL_Window* window = NULL;
+  SDL_Surface* screenSurface = NULL;
 
-  /*for (int i = 0; i < 2000; i++) {  
+  if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+    printf("SDL could not initialise. SDL_Error: %s\n", SDL_GetError());
+  } else {
+    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, 
+        SDL_WINDOWPOS_UNDEFINED, NUM_PIXELS_X*UI_SCALE, NUM_PIXELS_Y*UI_SCALE, SDL_WINDOW_SHOWN);
+    if (window == NULL) {
+      printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError());
+    } else {
+      screenSurface = SDL_GetWindowSurface(window);
+      load_program(argv[1], m);
+
+      bool running = true;
+      while(running) { 
+        SDL_Event e; 
+        SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
+        
+        while(SDL_PollEvent(&e)) { 
+          switch(e.type) { 
+            case SDL_QUIT:
+              running = false;
+              break; 
+          }
+        } 
+        machine_tick(m);
+
+        for (int i = 0; i < 64*32; i++) {
+          if (m->display[i]) {
+            SDL_Rect rect = {(i%64)*UI_SCALE,(i/64)*UI_SCALE,UI_SCALE,UI_SCALE};
+            SDL_FillRect(screenSurface, &rect, SDL_MapRGB(screenSurface->format, 0, 0, 0));
+          }
+        }
+        SDL_UpdateWindowSurface(window);
+      }
+
+
+
+    }
+  }
+
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+
+  //load_program(argv[1], m);
+
+  /*for (;;) {  
     machine_tick(m);
     //printf("%02x %02x\n", m->pc, m->memory[m->pc]);
-  }
+  
 
   for (int i = 0; i < 64*32; i++) {
     if(m->display[i])
-      printf("1");
+      printf("▓");
     else
-      printf("0");
+      printf("░");
     if ((i + 1) % 64 == 0)
       printf("\n");
+  }
   }*/
-
 }
 
 void machine_init(struct machine *m) {
@@ -110,6 +154,7 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
         default:
           // Calls RCA 1802 program at address NNN
           // TODO
+          printf("Unimplemented RCA 1802 0NNN instruction\n");
           m->pc += 2;
           break;
       }
@@ -259,7 +304,12 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
             m->V[x] = m->delay_timer;
             break;
           case 0xA:
-            // TODO
+            while (m->new_keypress == -1) {
+              // Do nothing. We're waiting for a keypress.
+              printf("Busy waiting.");
+            }
+            m->V[x] = m->new_keypress;
+            m->new_keypress = -1;
             break;
           case 0x15:
             m->delay_timer = m->V[x];
@@ -294,8 +344,8 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
 }
 
 void key_press(uint8_t i, struct machine *m) {
-
   m->key[i] = true;
+  m->new_keypress = i;
 }
 
 void key_unpress(uint8_t i, struct machine *m) {
