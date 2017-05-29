@@ -36,8 +36,6 @@ struct machine {
   bool     needs_redraw;     /* Flag used to determine whether or not to
                               * redraw the pixels on screen. */
   bool     display[NUM_PIXELS_X * NUM_PIXELS_Y]; 
-  int8_t   new_keypress;     /* Stores the latest key to be pressed, or -1 if
-                              * value has already been consumed. */
   bool     key[16];          /* Array representing the state of the hex keyboard
                               * true = pressed, false = not pressed */
 };

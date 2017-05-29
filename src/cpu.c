@@ -35,10 +35,10 @@ int main(int argc, char **argv) {
   SDL_Window* window = NULL;
   SDL_Surface* screenSurface = NULL;
 
-  if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL could not initialise. SDL_Error: %s\n", SDL_GetError());
   } else {
-    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, 
+    window = SDL_CreateWindow( "Chip 8 Emulator", SDL_WINDOWPOS_UNDEFINED, 
         SDL_WINDOWPOS_UNDEFINED, NUM_PIXELS_X*UI_SCALE, NUM_PIXELS_Y*UI_SCALE, SDL_WINDOW_SHOWN);
     if (window == NULL) {
       printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError());
@@ -51,13 +51,66 @@ int main(int argc, char **argv) {
         SDL_Event e; 
         SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
         
-        while(SDL_PollEvent(&e)) { 
+        int key;
+
+        if (SDL_PollEvent(&e)) {
+          printf("Polling...\n"); 
           switch(e.type) { 
             case SDL_QUIT:
               running = false;
-              break; 
+              break;
+            case SDL_KEYDOWN:;
+              key = -1;
+              switch(e.key.keysym.sym) {
+                case SDLK_1: key = 0x1; break;
+                case SDLK_2: key = 0x2; break;
+                case SDLK_3: key = 0x3; break;
+                case SDLK_4: key = 0xC; break;
+                case SDLK_q: key = 0x4; break;
+                case SDLK_w: key = 0x5; break;
+                case SDLK_e: key = 0x6; break;
+                case SDLK_r: key = 0xD; break;
+                case SDLK_a: key = 0x7; break;
+                case SDLK_s: key = 0x8; break;
+                case SDLK_d: key = 0x9; break;
+                case SDLK_f: key = 0xE; break;
+                case SDLK_z: key = 0xA; break;
+                case SDLK_x: key = 0x0; break;
+                case SDLK_c: key = 0xB; break;
+                case SDLK_v: key = 0xF; break;
+              }
+              if (key != -1) {
+                //printf("Keypress!\n");
+                m->key[key] = 1;
+              }
+              break;
+            case SDL_KEYUP:;
+              key = -1;
+              switch(e.key.keysym.sym) {
+                case SDLK_1: key = 0x1; break;
+                case SDLK_2: key = 0x2; break;
+                case SDLK_3: key = 0x3; break;
+                case SDLK_4: key = 0xC; break;
+                case SDLK_q: key = 0x4; break;
+                case SDLK_w: key = 0x5; break;
+                case SDLK_e: key = 0x6; break;
+                case SDLK_r: key = 0xD; break;
+                case SDLK_a: key = 0x7; break;
+                case SDLK_s: key = 0x8; break;
+                case SDLK_d: key = 0x9; break;
+                case SDLK_f: key = 0xE; break;
+                case SDLK_z: key = 0xA; break;
+                case SDLK_x: key = 0x0; break;
+                case SDLK_c: key = 0xB; break;
+                case SDLK_v: key = 0xF; break;
+              }
+              if (key != -1) {
+                //printf("Keyup!\n");
+                m->key[key] = 0;
+              }
+              break;
           }
-        } 
+        }
         machine_tick(m);
 
         for (int i = 0; i < 64*32; i++) {
@@ -67,9 +120,8 @@ int main(int argc, char **argv) {
           }
         }
         SDL_UpdateWindowSurface(window);
+        //SDL_Delay(16); // Delay to make game ~60Hz
       }
-
-
 
     }
   }
@@ -77,22 +129,6 @@ int main(int argc, char **argv) {
   SDL_DestroyWindow(window);
   SDL_Quit();
 
-  //load_program(argv[1], m);
-
-  /*for (;;) {  
-    machine_tick(m);
-    //printf("%02x %02x\n", m->pc, m->memory[m->pc]);
-  
-
-  for (int i = 0; i < 64*32; i++) {
-    if(m->display[i])
-      printf("▓");
-    else
-      printf("░");
-    if ((i + 1) % 64 == 0)
-      printf("\n");
-  }
-  }*/
 }
 
 void machine_init(struct machine *m) {
@@ -123,6 +159,10 @@ void machine_init(struct machine *m) {
 void machine_tick(struct machine *m) {
   uint16_t instr = fetch_instruction(m);
   decode_instruction(instr, m);
+  if (m->delay_timer > 0)
+    m->delay_timer--;
+  if (m->sound_timer > 0)
+    m->sound_timer--;
 }
 
 uint16_t fetch_instruction(struct machine *m) {
@@ -302,17 +342,20 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
         switch (nn) {
           case 0x7:
             m->V[x] = m->delay_timer;
+            printf("Delay timer assigned to x\n");
             break;
           case 0xA:
-            while (m->new_keypress == -1) {
-              // Do nothing. We're waiting for a keypress.
-              printf("Busy waiting.");
+            for (int i = 0; i < 16; i++) { // TODO: magic number removal
+              if (m->key[i]) {
+                m->V[x] = i;
+                break;
+              }
             }
-            m->V[x] = m->new_keypress;
-            m->new_keypress = -1;
+            m->pc -= 2; // If no key is pressed, try this instruction again.
             break;
           case 0x15:
             m->delay_timer = m->V[x];
+            printf("value in x assigned to delay timer\n");
             break;
           case 0x18:
             m->sound_timer = m->V[x];
@@ -345,7 +388,6 @@ void decode_instruction(uint16_t instruction, struct machine *m) {
 
 void key_press(uint8_t i, struct machine *m) {
   m->key[i] = true;
-  m->new_keypress = i;
 }
 
 void key_unpress(uint8_t i, struct machine *m) {
